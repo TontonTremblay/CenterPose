@@ -546,8 +546,8 @@ class BaseDetector(object):
         # The goal is to get 2d projection of keypoints & 6-DoF & 3d keypoint in camera frame
         boxes = []
         if self.opt.use_pnp == True:
-
             for bbox in results:
+
                 # Point processing according to different rep_modes
                 if self.opt.rep_mode == 0 or self.opt.rep_mode == 3 or self.opt.rep_mode == 4:
 
@@ -648,8 +648,9 @@ class BaseDetector(object):
                     points = np.array(points).reshape(-1, 3)
                     # Do not need labels for pnp
                     points_filtered = points[:, 0:2]
-
+                
                 ret = pnp_shell(self.opt, meta, bbox, points_filtered, bbox['obj_scale'], OPENCV_RETURN=self.opt.show_axes)
+               
                 if ret is not None:
                     boxes.append(ret)
 
@@ -727,6 +728,7 @@ class BaseDetector(object):
 
                 dict_out['objects'].append(dict_obj)
         else:
+            print("boxes len", len(boxes))
             for box in boxes:
                 # Basic part
                 dict_obj = {
@@ -736,6 +738,7 @@ class BaseDetector(object):
                     'confidence': box[4]['score'],
                     'kps_displacement_mean': box[4]['kps_displacement_mean'].tolist(),
                     'kps_heatmap_mean': box[4]['kps_heatmap_mean'].tolist(),
+                    "projected_cuboid": box[4]['projected_cuboid'].tolist(),
 
                     'kps_heatmap_std': box[4]['kps_heatmap_std'].tolist(),
                     'kps_heatmap_height': box[4]['kps_heatmap_height'].tolist(),

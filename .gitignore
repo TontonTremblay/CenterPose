@@ -1,0 +1,9 @@
+src/lib/__pycache__
+src/lib/detectors/__pycache__
+src/lib/utils/__pycache__
+src/lib/utils/pnp/__pycache__
+src/lib/datasets/__pycache__
+src/lib/trains/__pycache__
+src/lib/models/__pycache__
+src/lib/models/networks/__pycache__
+src/lib/models/networks/DCNv2/__pycache__

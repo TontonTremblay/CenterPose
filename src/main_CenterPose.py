@@ -123,7 +123,7 @@ if __name__ == '__main__':
     opt = opt.parser.parse_args()
 
     # Local configuration
-    opt.c = 'bike'
+    opt.c = 'xunlei_falling'
     opt.arch='dlav1_34'
     opt.obj_scale = True
     opt.obj_scale_weight = 1

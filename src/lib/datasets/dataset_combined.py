@@ -114,7 +114,7 @@ class ObjectPoseDataset(data.Dataset):
         if opt.tracking_task == True:
             self.data_dir = os.path.join(opt.data_dir, 'outf_all')
         else:
-            self.data_dir = os.path.join(opt.data_dir, 'outf')
+            self.data_dir = opt.data_dir #os.path.join(opt.data_dir, 'outf')
         #john      
         self.data_dir = opt.data_dir
         # print(self.data_dir)
@@ -964,8 +964,8 @@ class ObjectPoseDataset(data.Dataset):
         cam_projection_matrix = np.zeros([4,4])
         for k in range(num_objs):
             ann = anns['objects'][k]
-            if not 'single_obj' in anns['objects'][k]['name']:
-                continue
+            # if not 'single_obj' in anns['objects'][k]['name']:
+            #     continue
             # Todo: Only for chair category for now
             if 'symmetric' in ann:
                 if ann['symmetric'] == 'True':
@@ -1212,5 +1212,9 @@ class ObjectPoseDataset(data.Dataset):
 
             ret['meta'] = meta
         # </editor-fold>
+        
+        # debug
+        #print(ret)
 
         return ret
+

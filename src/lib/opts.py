@@ -21,6 +21,8 @@ class opts(object):
 
         self.parser.add_argument('--dataset', default='objectron',
                                  help='objectron')
+        self.parser.add_argument('--data_dir', default='../data',
+                                 help='train/val/test dataset directory')
         self.parser.add_argument('--exp_id', default='default')
         self.parser.add_argument('--test', action='store_true')  # run on validation dataset
         self.parser.add_argument('--debug', type=int, default=1,
