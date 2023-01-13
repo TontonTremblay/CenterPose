@@ -127,7 +127,7 @@ class ObjectPoseDataset(data.Dataset):
         self.img_dir = os.path.join(self.data_dir, "train")
 
         # Todo: take the test split as validation
-        if split == 'val' and not os.path.isdir(self.img_dir):
+        if split == 'val': #and not os.path.isdir(self.img_dir):
             self.img_dir = os.path.join(self.data_dir, "test")
 
         self.max_objs = 10
