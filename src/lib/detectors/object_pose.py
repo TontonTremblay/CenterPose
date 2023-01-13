@@ -346,12 +346,12 @@ class ObjectPoseDetector(BaseDetector):
             debugger.save_all_imgs_eval(image_or_path_or_tensor, path=video_dir_path, video_layout=True)
             if dict_out is not None:
                 with open(f"{video_dir_path}/{file_id_name}.json", 'w') as fp:
-                    json.dump(dict_out, fp)
+                    json.dump(dict_out, fp, indent=4)
         else:
             debugger.save_all_imgs_eval(image_or_path_or_tensor, path=root_dir_path, video_layout=False)
             if dict_out is not None:
                 with open(f"{root_dir_path}/{folder_name}_{file_id_name}.json", 'w') as fp:
-                    json.dump(dict_out, fp)
+                    json.dump(dict_out, fp, indent=4)
 
     def save_results(self, debugger, image, results, image_or_path_or_tensor, dict_out=None):
         debugger.add_img(image, img_id='out_img_pred')
@@ -410,4 +410,4 @@ class ObjectPoseDetector(BaseDetector):
             file_id_name = os.path.splitext(os.path.basename(image_or_path_or_tensor))[0]
 
             with open(f"{target_dir_path}/{file_id_name}.json", 'w') as fp:
-                json.dump(dict_out, fp)
+                json.dump(dict_out, fp, indent=4)

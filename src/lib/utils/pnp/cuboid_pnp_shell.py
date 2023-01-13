@@ -19,10 +19,9 @@ def pnp_shell(opt, meta, bbox, points_filtered, scale, OPENCV_RETURN = False):
     pnp_solver.set_camera_intrinsic_matrix(meta['camera_matrix'])
 
     location, quaternion, projected_points, reprojectionError = pnp_solver.solve_pnp(
-        points_filtered, OPENCV_RETURN=OPENCV_RETURN)  # N * 2
+        points_filtered, OPENCV_RETURN=OPENCV_RETURN, verbose = True)  # N * 2
 
     if location is not None:
-
         # Save to results
         bbox['location'] = location
         bbox['quaternion_xyzw'] = quaternion
@@ -74,7 +73,6 @@ def pnp_shell(opt, meta, bbox, points_filtered, scale, OPENCV_RETURN = False):
         def is_visible(point):
             """Determines if a 2D point is visible."""
             return point[0] > 0 and point[0] < 1 and point[1] > 0 and point[1] < 1
-
         if not is_visible(projected_points[0]):
             return
 
@@ -86,7 +84,8 @@ def pnp_shell(opt, meta, bbox, points_filtered, scale, OPENCV_RETURN = False):
         # Normalization
         points_ori[:, 0] = points_ori[:, 0] / meta['width']
         points_ori[:, 1] = points_ori[:, 1] / meta['height']
-
+        
+        
         # keypoint_2d_pnp, keypoint_3d, predicted_scale, keypoint_2d_ori, result_ori for debug
         return projected_points, point_3d_cam, np.array(bbox['obj_scale']), points_ori, bbox
 

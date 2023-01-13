@@ -545,115 +545,130 @@ class BaseDetector(object):
 
         # The goal is to get 2d projection of keypoints & 6-DoF & 3d keypoint in camera frame
         boxes = []
-        if self.opt.use_pnp == True:
-            for bbox in results:
+        
+        for bbox in results:
 
-                # Point processing according to different rep_modes
-                if self.opt.rep_mode == 0 or self.opt.rep_mode == 3 or self.opt.rep_mode == 4:
+            # Point processing according to different rep_modes
+            if self.opt.rep_mode == 0 or self.opt.rep_mode == 3 or self.opt.rep_mode == 4:
 
-                    # 8 representation from centernet
-                    points = [(x[0], x[1]) for x in np.array(bbox['kps']).reshape(-1, 2)]
-                    points_filtered = points
+                # 8 representation from centernet
+                points = [(x[0], x[1]) for x in np.array(bbox['kps']).reshape(-1, 2)]
+                points_filtered = points
 
-                elif self.opt.rep_mode == 1:
+            elif self.opt.rep_mode == 1:
 
-                    # 16 representation
-                    points_1 = np.array(bbox['kps_displacement_mean']).reshape(-1, 2)
-                    points_1 = [(x[0], x[1]) for x in points_1]
-                    points_2 = np.array(bbox['kps_heatmap_mean']).reshape(-1, 2)
-                    points_2 = [(x[0], x[1]) for x in points_2]
-                    points = np.hstack((points_1, points_2)).reshape(-1, 2)
-                    points_filtered = points
+                # 16 representation
+                points_1 = np.array(bbox['kps_displacement_mean']).reshape(-1, 2)
+                points_1 = [(x[0], x[1]) for x in points_1]
+                points_2 = np.array(bbox['kps_heatmap_mean']).reshape(-1, 2)
+                points_2 = [(x[0], x[1]) for x in points_2]
+                points = np.hstack((points_1, points_2)).reshape(-1, 2)
+                points_filtered = points
 
-                elif self.opt.rep_mode == 2:
+            elif self.opt.rep_mode == 2:
 
-                    points = []
+                points = []
 
-                    N_sample = 20
+                N_sample = 20
 
-                    confidence_list = []
-                    dis_list = []
-                    weight_list = []
+                confidence_list = []
+                dis_list = []
+                weight_list = []
 
-                    keypoint_heatmap_mean_list = []
-                    keypoint_heatmap_std_list = []
+                keypoint_heatmap_mean_list = []
+                keypoint_heatmap_std_list = []
 
-                    keypoint_displacement_mean_list = []
-                    keypoint_displacement_std_list = []
+                keypoint_displacement_mean_list = []
+                keypoint_displacement_std_list = []
 
-                    GMM_list = []
+                GMM_list = []
 
-                    for i in range(8):
+                for i in range(8):
 
-                        # Normalized L2
-                        keypoint_displacement_norm = np.array(
-                            [bbox['kps_displacement_mean'][i * 2] / meta['width'],
-                             bbox['kps_displacement_mean'][i * 2 + 1] / meta['height']])
-                        keypoint_heatmap_norm = np.array(
-                            [bbox['kps_heatmap_mean'][i * 2] / meta['width'],
-                             bbox['kps_heatmap_mean'][i * 2 + 1] / meta['height']])
-                        dis = np.linalg.norm(keypoint_displacement_norm - keypoint_heatmap_norm)
+                    # Normalized L2
+                    keypoint_displacement_norm = np.array(
+                        [bbox['kps_displacement_mean'][i * 2] / meta['width'],
+                            bbox['kps_displacement_mean'][i * 2 + 1] / meta['height']])
+                    keypoint_heatmap_norm = np.array(
+                        [bbox['kps_heatmap_mean'][i * 2] / meta['width'],
+                            bbox['kps_heatmap_mean'][i * 2 + 1] / meta['height']])
+                    dis = np.linalg.norm(keypoint_displacement_norm - keypoint_heatmap_norm)
 
-                        confidence_list.append(bbox['kps_heatmap_height'][i])
-                        dis_list.append(dis)
+                    confidence_list.append(bbox['kps_heatmap_height'][i])
+                    dis_list.append(dis)
 
-                        def gaussian(dist, sigma=10.):
-                            return math.e ** (-dist ** 2 / 2 / sigma ** 2)
+                    def gaussian(dist, sigma=10.):
+                        return math.e ** (-dist ** 2 / 2 / sigma ** 2)
 
-                        # Calculate new weight list according to confidence & gaussian distribution on dis
-                        weight_list.append(confidence_list[i] * gaussian(dis))
+                    # Calculate new weight list according to confidence & gaussian distribution on dis
+                    weight_list.append(confidence_list[i] * gaussian(dis))
 
-                        # 1. Heatmap
-                        keypoint_heatmap_mean = [bbox['kps_heatmap_mean'][i * 2], bbox['kps_heatmap_mean'][i * 2 + 1]]
-                        keypoint_heatmap_std = [bbox['kps_heatmap_std'][i * 2], bbox['kps_heatmap_std'][i * 2 + 1]]
+                    # 1. Heatmap
+                    keypoint_heatmap_mean = [bbox['kps_heatmap_mean'][i * 2], bbox['kps_heatmap_mean'][i * 2 + 1]]
+                    keypoint_heatmap_std = [bbox['kps_heatmap_std'][i * 2], bbox['kps_heatmap_std'][i * 2 + 1]]
 
-                        # 2. Displacement
-                        kps_displacement_mean = [bbox['kps_displacement_mean'][i * 2],
-                                                 bbox['kps_displacement_mean'][i * 2 + 1]]
-                        kps_displacement_std = keypoint_heatmap_std
+                    # 2. Displacement
+                    kps_displacement_mean = [bbox['kps_displacement_mean'][i * 2],
+                                                bbox['kps_displacement_mean'][i * 2 + 1]]
+                    kps_displacement_std = keypoint_heatmap_std
 
-                        # Fit a GMM by sampling from keypoint_displacement &  keypoint_heatmap distributions
-                        X_train = []
-                        if keypoint_heatmap_mean[0] < -5000 or keypoint_heatmap_mean[1] < -5000:
-                            kps_displacement_std = [5, 5]
-                            points_sample = np.random.multivariate_normal(
-                                np.array(kps_displacement_mean),
-                                np.array([[kps_displacement_std[0], 0], [0, kps_displacement_std[1]]]), size=1000)
-                            X_train.append(points_sample)
-                        else:
-                            points_sample = np.random.multivariate_normal(
-                                np.array(keypoint_heatmap_mean),
-                                np.array([[keypoint_heatmap_mean[0], 0], [0, keypoint_heatmap_mean[1]]]), size=500)
-                            X_train.append(points_sample)
+                    # Fit a GMM by sampling from keypoint_displacement &  keypoint_heatmap distributions
+                    X_train = []
+                    if keypoint_heatmap_mean[0] < -5000 or keypoint_heatmap_mean[1] < -5000:
+                        kps_displacement_std = [5, 5]
+                        points_sample = np.random.multivariate_normal(
+                            np.array(kps_displacement_mean),
+                            np.array([[kps_displacement_std[0], 0], [0, kps_displacement_std[1]]]), size=1000)
+                        X_train.append(points_sample)
+                    else:
+                        points_sample = np.random.multivariate_normal(
+                            np.array(keypoint_heatmap_mean),
+                            np.array([[keypoint_heatmap_mean[0], 0], [0, keypoint_heatmap_mean[1]]]), size=500)
+                        X_train.append(points_sample)
 
-                            points_sample = np.random.multivariate_normal(
-                                np.array(kps_displacement_mean),
-                                np.array([[kps_displacement_std[0], 0], [0, kps_displacement_std[1]]]), size=500)
-                            X_train.append(points_sample)
+                        points_sample = np.random.multivariate_normal(
+                            np.array(kps_displacement_mean),
+                            np.array([[kps_displacement_std[0], 0], [0, kps_displacement_std[1]]]), size=500)
+                        X_train.append(points_sample)
 
-                        keypoint_heatmap_mean_list.append(keypoint_heatmap_mean)
-                        keypoint_heatmap_std_list.append(keypoint_heatmap_std)
-                        keypoint_displacement_mean_list.append(kps_displacement_mean)
-                        keypoint_displacement_std_list.append(kps_displacement_std)
+                    keypoint_heatmap_mean_list.append(keypoint_heatmap_mean)
+                    keypoint_heatmap_std_list.append(keypoint_heatmap_std)
+                    keypoint_displacement_mean_list.append(kps_displacement_mean)
+                    keypoint_displacement_std_list.append(kps_displacement_std)
 
-                        X_train = np.array(X_train).reshape(-1, 2)
-                        clf = mixture.GaussianMixture(n_components=2, covariance_type='full')
-                        clf.fit(X_train)
-                        GMM_list.append(clf)
+                    X_train = np.array(X_train).reshape(-1, 2)
+                    clf = mixture.GaussianMixture(n_components=2, covariance_type='full')
+                    clf.fit(X_train)
+                    GMM_list.append(clf)
 
-                        points_sample = clf.sample(N_sample)
-                        points_sample = np.hstack((points_sample[0], np.array(points_sample[1]).reshape(-1, 1)))
-                        points.append(points_sample)
+                    points_sample = clf.sample(N_sample)
+                    points_sample = np.hstack((points_sample[0], np.array(points_sample[1]).reshape(-1, 1)))
+                    points.append(points_sample)
 
-                    points = np.array(points).reshape(-1, 3)
-                    # Do not need labels for pnp
-                    points_filtered = points[:, 0:2]
+                points = np.array(points).reshape(-1, 3)
+                # Do not need labels for pnp
+                points_filtered = points[:, 0:2]
+            
+            if self.opt.use_pnp == True:
+                print(points_filtered)
                 
                 ret = pnp_shell(self.opt, meta, bbox, points_filtered, bbox['obj_scale'], OPENCV_RETURN=self.opt.show_axes)
                
                 if ret is not None:
                     boxes.append(ret)
-
+            
+            else:
+                # directly pull the 16 keypoints to get the projected points
+                if self.opt.rep_mode == 1:
+                    print("Warning: only displacement-based keypoints were selected here")
+                    projected_points = points_filtered[:4]
+                else:
+                    projected_points = points_filtered
+                
+                centroid = [(0,0)]
+                
+                # 9 points in total
+                boxes.append({"projected_cuboid": projected_points+centroid})
         pnp_process_time = time.time()
         pnp_time += pnp_process_time - merge_outputs_time
 
@@ -727,7 +742,7 @@ class BaseDetector(object):
                     dict_obj['tracking_hp'] = track['tracking_hp'].tolist()
 
                 dict_out['objects'].append(dict_obj)
-        else:
+        elif self.opt.use_pnp:
             print("boxes len", len(boxes))
             for box in boxes:
                 # Basic part
@@ -754,6 +769,15 @@ class BaseDetector(object):
                         dict_obj['kps_pnp'] = box[4]['kps_pnp'].tolist()
                         dict_obj['kps_3d_cam'] = box[4]['kps_3d_cam'].tolist()
 
+                dict_out['objects'].append(dict_obj)
+        else:
+            # directly export 8 points as detected objects
+            for box in boxes:
+                dict_obj = {
+                    'name': self.opt.c,
+                    "projected_cuboid": box["projected_cuboid"]
+                }
+                
                 dict_out['objects'].append(dict_obj)
 
 
